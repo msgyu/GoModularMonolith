@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e -o pipefail
+export PATH="$PWD/.gobincache:$PATH"
+go generate
+HADOLINT_VER="2.4.1"
+hadolint --version | grep -wq $HADOLINT_VER || curl -sSfL https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VER}/hadolint-"$(uname)"-x86_64 | install -D /dev/stdin .gobincache/hadolint
+SHELLCHECK_VER="0.7.2"
+shellcheck --version | grep -wq $SHELLCHECK_VER || curl -sSfL https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VER}/shellcheck-v${SHELLCHECK_VER}."$(uname)".x86_64.tar.xz | tar xJf - -C .gobincache --strip-components=1 shellcheck-v${SHELLCHECK_VER}/shellcheck
+set -x
+
+hadolint Dockerfile
+
+shellcheck env.sh.dist scripts/*
+
+if test -d api/proto; then
+	git show-branch master >/dev/null || git branch master origin/master
+	! git ls-tree -r master api/proto | grep -q '[.]proto$' ||
+		! find api/proto -name '*.proto' -print -quit 2>/dev/null | grep -q . ||
+		buf breaking --against '.git#branch=master'
+
+	buf lint
+
+	# shellcheck disable=SC2046 # $(sed) needs to output multiple words.
+	find api/proto -name '*.proto' -print0 2>/dev/null | xargs -0 --no-run-if-empty -n 1 \
+		api-linter --set-exit-status --config .api-linter.yml \
+		$(sed -n -e '/roots:/,/:$/{s/^\s*- /-I /p}' buf.yaml)
+fi
+
+# When https://github.com/quasilyte/go-ruleguard/issues/78 will be
+# implemented and available in golangci-lint then replace using
+# build/gorules/rules.go.
+mod="$(go list -m)"
+(! grep --color=auto -r "\"$mod/internal" pkg)
+find ms -type d -name old | while read -r old; do
+	# shellcheck disable=SC2251 # Need inverted exit status to keep -e happy.
+	! grep -P -r "\"$mod/${old%/*}/(?!old|app)" "$old"
+done
+
+golangci-lint run
+
+dockerize \
+	-wait "tcp://${MONO_X_MYSQL_ADDR_HOST}:${MONO_X_MYSQL_ADDR_PORT:-3306}" \
+	-wait "tcp://${MONO_X_POSTGRES_ADDR_HOST}:${MONO_X_POSTGRES_ADDR_PORT:-5432}" \
+	-timeout 30s
+test -z "$CI" || scripts/postgres-setup | psql
+gotestsum -- -race -tags=integration "$@" ./...
