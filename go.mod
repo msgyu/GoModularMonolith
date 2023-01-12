@@ -19,8 +19,8 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/mattn/goveralls v0.0.9
 	github.com/nats-io/nats-streaming-server v0.21.2 // indirect
-	github.com/nats-io/nats.go v1.11.0
-	github.com/nats-io/stan.go v0.9.0
+	github.com/nats-io/nats.go v1.22.1
+	github.com/nats-io/stan.go v0.10.4
 	github.com/oklog/ulid v1.3.1
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/powerman/appcfg v0.6.0
@@ -42,10 +42,10 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/crypto v0.5.0
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-	golang.org/x/text v0.3.6
-	golang.org/x/tools v0.1.2
+	golang.org/x/text v0.6.0
+	golang.org/x/tools v0.1.12
 	google.golang.org/genproto v0.0.0-20210524171403-669157292da3
 	google.golang.org/grpc v1.39.0-dev.0.20210519181852-3dd75a6888ce
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
